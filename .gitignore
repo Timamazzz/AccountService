@@ -1,0 +1,90 @@
+# Ignore Visual Studio-specific files
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vs/
+
+# Ignore build output
+bin/
+obj/
+publish/
+out/
+
+# Ignore logs and temp files
+*.log
+*.tlog
+*.cache
+*.pdb
+*.pidb
+*.ilk
+*.swp
+*.swo
+*.snt
+*.tmp
+*.bak
+*.ncb
+*.aps
+*.pch
+
+# Ignore Rider-specific files
+.idea/
+*.iml
+
+# Ignore environment configuration files
+.env
+.env.local
+secrets.json
+appsettings.Development.json
+appsettings.Local.json
+
+# Ignore package files
+packages/
+node_modules/
+dist/
+bower_components/
+
+# Ignore Docker files
+docker-compose.override.yml
+.dockerignore
+
+# Ignore NuGet cache and lock files
+*.nupkg
+*.snupkg
+.nuget/
+project.lock.json
+packages.lock.json
+
+# Ignore database files
+*.mdf
+*.ldf
+*.sqlite
+*.db
+
+# Ignore Swagger files
+swagger/
+swagger.json
+swagger.yaml
+
+# Ignore coverage reports
+coverage/
+coverage.info
+*.coverage
+*.coveragexml
+
+# Ignore ReSharper / Rider / Resharper Cache
+*.DotSettings.user
+*.sln.DotSettings
+**/bin/
+**/obj/
+**/TestResults/
+**/logs/
+**/*.suo
+**/*.user
+**/*.userosscache
+**/*.sln.docstates
+**/.vs/
+
+# Ignore EF Core migrations history
+Migrations/

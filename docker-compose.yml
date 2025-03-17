@@ -1,0 +1,31 @@
+﻿version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: accountservice_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: account_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  accountservice:
+    build:
+      context: .
+      dockerfile: AccountService.API/Dockerfile
+    container_name: accountservice_api
+    depends_on:
+      - postgres
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=account_service;Username=postgres;Password=yourpassword"
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
