@@ -1,26 +1,31 @@
 ﻿namespace AccountService.Application.Exceptions;
 
 /// <summary>
-/// Base application exception that supports error code and additional data for ProblemDetails formatting.
+/// Base application exception that supports error code, additional data and semantic HTTP-like status code.
 /// </summary>
 public abstract class AppException : Exception
 {
     /// <summary>
-    /// Gets the machine-readable error code that can be used for front-end handling or internationalization.
+    /// Gets the machine-readable error code used for frontend or API logic.
     /// </summary>
     public string ErrorCode { get; }
 
     /// <summary>
-    /// Gets additional contextual data to be included in the ProblemDetails response.
+    /// Gets optional contextual data to include in the error response.
     /// </summary>
     public object? AdditionalData { get; }
+
+    /// <summary>
+    /// Gets the semantic status code (HTTP-like) to be returned from the API.
+    /// </summary>
+    public virtual int StatusCode => 500;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AppException"/> class.
     /// </summary>
     /// <param name="message">Human-readable error message.</param>
-    /// <param name="errorCode">Optional machine-readable error code. If null, it will be generated from exception type.</param>
-    /// <param name="additionalData">Optional additional data to be included in the response.</param>
+    /// <param name="errorCode">Optional machine-readable error code. If null, it will be generated from the exception type.</param>
+    /// <param name="additionalData">Optional additional data for ProblemDetails.</param>
     protected AppException(string message, string? errorCode = null, object? additionalData = null)
         : base(message)
     {
@@ -29,9 +34,8 @@ public abstract class AppException : Exception
     }
 
     /// <summary>
-    /// Generates a fallback error code from the exception type name in snake_case format.
+    /// Generates a default error code from the exception type name in snake_case.
     /// </summary>
-    /// <returns>Snake-cased error code, e.g., "not_found", "validation_failed".</returns>
     private string GenerateDefaultErrorCode()
     {
         var typeName = GetType().Name.Replace("Exception", "");

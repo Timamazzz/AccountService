@@ -20,7 +20,7 @@ public class UserController(IUserService userService, IMapper mapper) : Controll
     /// </summary>
     /// <param name="id">The unique identifier of the user.</param>
     /// <returns>The user data.</returns>
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(UserResponse), (int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     public async Task<ActionResult<UserResponse>> GetUserById(Guid id)

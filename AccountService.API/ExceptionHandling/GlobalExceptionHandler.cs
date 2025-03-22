@@ -58,11 +58,7 @@ public class GlobalExceptionHandler(IHostEnvironment env, ILogger<GlobalExceptio
         var requestId = context.TraceIdentifier;
         var errorCode = exception.GetErrorCode();
 
-        var statusCode = exception switch
-        {
-            AppException => GetStatusCodeFromAppException(exception),
-            _ => (int)HttpStatusCode.InternalServerError
-        };
+        var statusCode = exception is AppException appEx ? appEx.StatusCode : (int)HttpStatusCode.InternalServerError;
 
         var title = ReasonPhrases.GetReasonPhrase(statusCode);
 
@@ -79,35 +75,22 @@ public class GlobalExceptionHandler(IHostEnvironment env, ILogger<GlobalExceptio
             }
         };
 
-        if (exception is AppException { AdditionalData: not null } appEx)
+        if (exception is AppException { AdditionalData: not null } withData)
         {
-            problem.Extensions["data"] = appEx.AdditionalData;
+            problem.Extensions["data"] = withData.AdditionalData;
         }
 
-        if (!env.IsDevelopment() || exception is AppException) return problem;
-        problem.Detail = exception.ToString();
-        problem.Extensions["data"] = new
+        if (env.IsDevelopment() && exception is not AppException)
         {
-            exceptionType = exception.GetType().FullName,
-            stackTrace = exception.StackTrace?.Split('\n').Take(5)
-        };
+            problem.Detail = exception.ToString();
+            problem.Extensions["data"] = new
+            {
+                exceptionType = exception.GetType().FullName,
+                stackTrace = exception.StackTrace?.Split('\n').Take(5)
+            };
+        }
 
         return problem;
-    }
-
-    /// <summary>
-    /// Maps known <see cref="AppException"/> types to HTTP status codes.
-    /// </summary>
-    /// <param name="exception">The exception to evaluate.</param>
-    /// <returns>The corresponding HTTP status code.</returns>
-    private static int GetStatusCodeFromAppException(Exception exception)
-    {
-        return exception switch
-        {
-            NotFoundException => (int)HttpStatusCode.NotFound,
-            ConflictException => (int)HttpStatusCode.Conflict,
-            _ => (int)HttpStatusCode.InternalServerError
-        };
     }
 
     /// <summary>

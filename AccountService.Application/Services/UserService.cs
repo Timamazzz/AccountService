@@ -34,7 +34,7 @@ public class UserService(IUserRepository userRepository, IPasswordHasher passwor
     {
         var existingUser = await userRepository.GetByUsernameAsync(userDto.Username);
         if (existingUser != null)
-            throw new ConflictException("A user with this username already exists");
+            throw new IsTakenException("A user with this username already exists", errorCode: "username.is_taken");
 
         userDto.PasswordHash = passwordHasher.HashPassword(userDto.PasswordHash);
         var user = mapper.Map<User>(userDto);

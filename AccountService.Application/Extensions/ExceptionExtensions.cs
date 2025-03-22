@@ -1,4 +1,5 @@
 ﻿using System;
+using AccountService.Application.Exceptions;
 
 namespace AccountService.Application.Extensions;
 
@@ -32,11 +33,15 @@ public static class ExceptionExtensions
     /// <returns>The error code string.</returns>
     public static string GetErrorCode(this Exception exception)
     {
-        if (!exception.Data.Contains(ErrorCodeKey))
-        {
-            exception.AddErrorCode();
-        }
+        if (exception is AppException appException)
+            return appException.ErrorCode;
 
-        return exception.Data[ErrorCodeKey]?.ToString() ?? "unknown_error";
+        const string key = "__errorCode";
+
+        if (exception.Data.Contains(key)) return exception.Data[key]?.ToString() ?? "unknown_error";
+        var fallback = Guid.NewGuid().ToString("N")[..8];
+        exception.Data[key] = fallback;
+
+        return exception.Data[key]?.ToString() ?? "unknown_error";
     }
 }
