@@ -13,10 +13,8 @@ namespace AccountService.API.ExceptionHandling;
 /// <summary>
 /// Centralized exception handler that converts exceptions into standardized <see cref="ProblemDetails"/> responses.
 /// </summary>
-public class GlobalExceptionHandler(IHostEnvironment env, ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
+public class GlobalExceptionHandler(IHostEnvironment env) : IExceptionHandler
 {
-    private const string UnhandledExceptionMessage = "An unexpected error occurred while processing the request.";
-
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
@@ -32,10 +30,6 @@ public class GlobalExceptionHandler(IHostEnvironment env, ILogger<GlobalExceptio
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception,
         CancellationToken cancellationToken)
     {
-        exception.AddErrorCode();
-
-        logger.LogError(exception, exception is AppException ? exception.Message : UnhandledExceptionMessage);
-
         var problemDetails = CreateProblemDetails(context, exception);
         var json = SerializeProblemDetails(problemDetails);
 
@@ -54,12 +48,13 @@ public class GlobalExceptionHandler(IHostEnvironment env, ILogger<GlobalExceptio
     /// <returns>A fully populated <see cref="ProblemDetails"/> object.</returns>
     private ProblemDetails CreateProblemDetails(HttpContext context, Exception exception)
     {
+        exception.AddErrorCode();
+
         var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
         var requestId = context.TraceIdentifier;
         var errorCode = exception.GetErrorCode();
 
         var statusCode = exception is AppException appEx ? appEx.StatusCode : (int)HttpStatusCode.InternalServerError;
-
         var title = ReasonPhrases.GetReasonPhrase(statusCode);
 
         var problem = new ProblemDetails
@@ -104,9 +99,8 @@ public class GlobalExceptionHandler(IHostEnvironment env, ILogger<GlobalExceptio
         {
             return JsonSerializer.Serialize(problemDetails, SerializerOptions);
         }
-        catch (Exception ex)
+        catch
         {
-            logger.LogError(ex, "Failed to serialize ProblemDetails");
             return "{}";
         }
     }
