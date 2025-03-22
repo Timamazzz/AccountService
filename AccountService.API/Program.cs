@@ -8,6 +8,8 @@ using AccountService.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using AccountService.API.ExceptionHandling;
+using AccountService.API.Validators.Profiles;
+using FluentValidation;
 using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,6 +37,8 @@ builder.Services.AddControllers();
 
 // FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateUserRequestValidator>();
+
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -54,6 +58,7 @@ if (app.Environment.IsDevelopment())
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         dbContext.Database.Migrate();
     }
+
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
