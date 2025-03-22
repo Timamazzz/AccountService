@@ -8,16 +8,9 @@ namespace AccountService.API.Validators.Rules;
 /// <summary>
 /// Rule for minimum string length.
 /// </summary>
-public class MinLength : IReusableRule
+public class MinLength(int length) : IReusableRule
 {
     public string Name => "MinLength";
-
-    private readonly int _length;
-
-    public MinLength(int length)
-    {
-        _length = length;
-    }
 
     public IRuleBuilderOptions<T, TProperty> Apply<T, TProperty>(IRuleBuilder<T, TProperty> ruleBuilder)
     {
@@ -28,7 +21,7 @@ public class MinLength : IReusableRule
 
         return (IRuleBuilderOptions<T, TProperty>)(object)
             ((IRuleBuilder<T, string>)(object)ruleBuilder)
-            .MinimumLength(_length)
+            .MinimumLength(length)
             .WithMessage(ValidationErrorCode.TooShort.ToErrorCode());
     }
 }

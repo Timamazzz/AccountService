@@ -3,7 +3,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AccountService.Application.Exceptions;
-using AccountService.Application.Extensions;
+using AccountService.Application.Exceptions.Extensions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
@@ -13,24 +13,33 @@ namespace AccountService.API.ExceptionHandling;
 /// <summary>
 /// Centralized exception handler that converts exceptions into standardized <see cref="ProblemDetails"/> responses.
 /// </summary>
-public class GlobalExceptionHandler(IHostEnvironment env) : IExceptionHandler
+public class GlobalExceptionHandler(IHostEnvironment env, ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     };
 
-    /// <summary>
-    /// Attempts to handle the given exception and write a ProblemDetails response.
-    /// </summary>
-    /// <param name="context">The current HTTP context.</param>
-    /// <param name="exception">The exception that was thrown.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns><c>true</c> if the exception was handled; otherwise, <c>false</c>.</returns>
+    /// <inheritdoc />
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception,
         CancellationToken cancellationToken)
     {
-        var problemDetails = CreateProblemDetails(context, exception);
+        exception.AddErrorCode();
+
+        var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
+        var requestId = context.TraceIdentifier;
+        var errorCode = exception.GetErrorCode();
+
+        logger.LogError(exception,
+            "Unhandled exception: {ExceptionType} | Status: {Status} | Path: {Path} | ErrorCode: {ErrorCode} | TraceId: {TraceId} | RequestId: {RequestId}",
+            exception.GetType().Name,
+            exception is AppException appEx ? appEx.StatusCode : 500,
+            context.Request.Path,
+            errorCode,
+            traceId,
+            requestId);
+
+        var problemDetails = CreateProblemDetails(context, exception, traceId, requestId, errorCode);
         var json = SerializeProblemDetails(problemDetails);
 
         context.Response.ContentType = "application/problem+json";
@@ -40,21 +49,17 @@ public class GlobalExceptionHandler(IHostEnvironment env) : IExceptionHandler
         return true;
     }
 
-    /// <summary>
-    /// Creates a <see cref="ProblemDetails"/> object from the given exception and context.
-    /// </summary>
-    /// <param name="context">The current HTTP context.</param>
-    /// <param name="exception">The exception to convert.</param>
-    /// <returns>A fully populated <see cref="ProblemDetails"/> object.</returns>
-    private ProblemDetails CreateProblemDetails(HttpContext context, Exception exception)
+    private ProblemDetails CreateProblemDetails(
+        HttpContext context,
+        Exception exception,
+        string traceId,
+        string requestId,
+        string errorCode)
     {
-        exception.AddErrorCode();
+        var statusCode = exception is AppException appEx
+            ? appEx.StatusCode
+            : (int)HttpStatusCode.InternalServerError;
 
-        var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
-        var requestId = context.TraceIdentifier;
-        var errorCode = exception.GetErrorCode();
-
-        var statusCode = exception is AppException appEx ? appEx.StatusCode : (int)HttpStatusCode.InternalServerError;
         var title = ReasonPhrases.GetReasonPhrase(statusCode);
 
         var problem = new ProblemDetails
@@ -88,19 +93,15 @@ public class GlobalExceptionHandler(IHostEnvironment env) : IExceptionHandler
         return problem;
     }
 
-    /// <summary>
-    /// Serializes the given <see cref="ProblemDetails"/> object to JSON.
-    /// </summary>
-    /// <param name="problemDetails">The <see cref="ProblemDetails"/> to serialize.</param>
-    /// <returns>A JSON string representing the problem details.</returns>
     private string SerializeProblemDetails(ProblemDetails problemDetails)
     {
         try
         {
             return JsonSerializer.Serialize(problemDetails, SerializerOptions);
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to serialize ProblemDetails");
             return "{}";
         }
     }

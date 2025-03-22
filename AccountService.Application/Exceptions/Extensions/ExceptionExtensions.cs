@@ -1,7 +1,7 @@
 ﻿using System;
 using AccountService.Application.Exceptions;
 
-namespace AccountService.Application.Extensions;
+namespace AccountService.Application.Exceptions.Extensions;
 
 /// <summary>
 /// Extension methods for working with exception metadata, such as error codes.

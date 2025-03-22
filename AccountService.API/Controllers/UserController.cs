@@ -13,18 +13,21 @@ namespace AccountService.API.Controllers;
 /// </summary>
 [Route("api/users")]
 [ApiController]
-public class UserController(IUserService userService, IMapper mapper) : ControllerBase
+public class UserController(
+    IUserService userService,
+    IMapper mapper,
+    ILogger<UserController> logger) : ControllerBase
 {
     /// <summary>
     /// Retrieves a user by their unique identifier.
     /// </summary>
-    /// <param name="id">The unique identifier of the user.</param>
-    /// <returns>The user data.</returns>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(UserResponse), (int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     public async Task<ActionResult<UserResponse>> GetUserById(Guid id)
     {
+        logger.LogInformation("HTTP GET /api/users/{UserId}", id);
+
         var userDto = await userService.GetUserByIdAsync(id);
         return Ok(mapper.Map<UserResponse>(userDto));
     }
@@ -32,13 +35,13 @@ public class UserController(IUserService userService, IMapper mapper) : Controll
     /// <summary>
     /// Retrieves a user by their username.
     /// </summary>
-    /// <param name="username">The username of the user.</param>
-    /// <returns>The user data.</returns>
     [HttpGet("by-username/{username}")]
     [ProducesResponseType(typeof(UserResponse), (int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     public async Task<ActionResult<UserResponse>> GetUserByUsername(string username)
     {
+        logger.LogInformation("HTTP GET /api/users/by-username/{Username}", username);
+
         var userDto = await userService.GetUserByUsernameAsync(username);
         return Ok(mapper.Map<UserResponse>(userDto));
     }
@@ -46,16 +49,18 @@ public class UserController(IUserService userService, IMapper mapper) : Controll
     /// <summary>
     /// Creates a new user.
     /// </summary>
-    /// <param name="request">The request model containing the username and password.</param>
     [HttpPost]
     [ProducesResponseType((int)HttpStatusCode.Created)]
     [ProducesResponseType((int)HttpStatusCode.Conflict)]
     [ProducesResponseType((int)HttpStatusCode.BadRequest)]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
     {
-        var userDto = mapper.Map<UserDto>(request);
+        logger.LogInformation("HTTP POST /api/users | Creating user: {Username}", request.Username);
 
+        var userDto = mapper.Map<UserDto>(request);
         await userService.CreateUserAsync(userDto);
+
+        logger.LogInformation("User '{Username}' created successfully", request.Username);
         return StatusCode((int)HttpStatusCode.Created);
     }
 }

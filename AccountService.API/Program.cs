@@ -1,3 +1,4 @@
+using Serilog;
 using AccountService.API.Mappers;
 using AccountService.Core.Interfaces.Repositories;
 using AccountService.Application.Interfaces.Services;
@@ -11,8 +12,42 @@ using AccountService.API.ExceptionHandling;
 using AccountService.API.Validators.Profiles;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning) // чтобы не спамили middleware'ы
+    .MinimumLevel.Override("System", LogEventLevel.Warning)
+    .MinimumLevel.Debug() // глобальный минимум
+    .Enrich.FromLogContext()
+    .WriteTo.Console(outputTemplate:
+        "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+    .WriteTo.Logger(lc => lc
+        .Filter.ByIncludingOnly(e =>
+            e.Level is LogEventLevel.Information or LogEventLevel.Warning)
+        .WriteTo.File(
+            "logs/info-.log",
+            rollingInterval: RollingInterval.Day,
+            outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+            retainedFileCountLimit: 7))
+    .WriteTo.Logger(lc => lc
+        .Filter.ByIncludingOnly(e =>
+            e.Level is LogEventLevel.Error or LogEventLevel.Fatal)
+        .WriteTo.File(
+            "logs/error-.log",
+            rollingInterval: RollingInterval.Day,
+            outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+            retainedFileCountLimit: 14))
+    .WriteTo.File(
+        new Serilog.Formatting.Json.JsonFormatter(),
+        "logs/log-.json",
+        rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
 
 // Register ProblemDetails for standardized error responses
 builder.Services.AddProblemDetails();
@@ -38,7 +73,6 @@ builder.Services.AddControllers();
 // FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateUserRequestValidator>();
-
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -72,3 +106,6 @@ app.UseExceptionHandler();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
+
+// Ensure logs are flushed
+Log.CloseAndFlush();
