@@ -1,5 +1,5 @@
 using AccountService.API.Mappers;
-using AccountService.Application.Interfaces.Repositories;
+using AccountService.Core.Interfaces.Repositories;
 using AccountService.Application.Interfaces.Services;
 using AccountService.Application.Mappers;
 using AccountService.Application.Services;
@@ -7,15 +7,14 @@ using AccountService.Persistence.Context;
 using AccountService.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
-using AccountService.API.Middleware;
-using AccountService.API.Validators;
-using FluentValidation;
+using AccountService.API.ExceptionHandling;
 using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Register ProblemDetails for standardized error responses
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // Add database context
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -34,11 +33,10 @@ builder.Services.AddAutoMapper(typeof(UserApiProfile), typeof(UserProfile));
 // Add controllers
 builder.Services.AddControllers();
 
-
+// FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssemblyContaining<CreateUserRequestValidator>();
 
-// Add Swagger with XML comments
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -48,7 +46,7 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// Automatically apply migrations in Development mode
+// Development-only config
 if (app.Environment.IsDevelopment())
 {
     using (var scope = app.Services.CreateScope())
@@ -56,8 +54,6 @@ if (app.Environment.IsDevelopment())
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         dbContext.Database.Migrate();
     }
-
-    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
@@ -66,11 +62,8 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-
-app.UseMiddleware<ExceptionHandlerMiddleware>();
-
 app.UseHttpsRedirection();
+app.UseExceptionHandler();
 app.UseAuthorization();
 app.MapControllers();
-
 app.Run();

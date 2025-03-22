@@ -1,6 +1,6 @@
 ﻿using AccountService.Core.Entities;
 
-namespace AccountService.Application.Interfaces.Repositories;
+namespace AccountService.Core.Interfaces.Repositories;
 
 /// <summary>
 /// Interface for user data operations in the repository layer.

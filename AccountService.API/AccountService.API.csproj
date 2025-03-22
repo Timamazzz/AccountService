@@ -27,4 +27,8 @@
     <ProjectReference Include="..\AccountService.Persistence\AccountService.Persistence.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Validators\" />
+  </ItemGroup>
+
 </Project>

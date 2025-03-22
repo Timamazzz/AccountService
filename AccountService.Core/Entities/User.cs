@@ -8,7 +8,7 @@ public class User
     /// <summary>
     /// The unique identifier of the user.
     /// </summary>
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid Id { get; init; } = Guid.NewGuid();
 
     /// <summary>
     /// The username (login) of the user.
